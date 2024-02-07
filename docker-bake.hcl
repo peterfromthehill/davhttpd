@@ -21,8 +21,7 @@ target "artifact-all" {
 
 // Special target: https://github.com/docker/metadata-action#bake-definition
 target "docker-metadata-action" {
-  //tags = ["registry:local"]
-  tags = ["registry-upload.unusual.one/peterfromthehill/davhttpd:0.0.1"]
+  tags = ["registry:local"]
 }
 
 target "image" {
