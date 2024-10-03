@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sirupsen/logrus"
+	middleware "davhttpd/middleware"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -17,11 +18,11 @@ func setupLogging() {
 	if !ok {
 		lvl = "debug"
 	}
-	ll, err := logrus.ParseLevel(lvl)
+	ll, err := log.ParseLevel(lvl)
 	if err != nil {
-		ll = logrus.DebugLevel
+		ll = log.DebugLevel
 	}
-	logrus.SetLevel(ll)
+	log.SetLevel(ll)
 }
 
 func main() {
@@ -39,17 +40,19 @@ func main() {
 
 	}
 
-	middlewareList := []Middleware{RedisCache("")}
-
 	dir := NewDavFileSystem(url, username, password)
-	middleware := FileSystemMiddleware{
-		FileSystem:  dir,
-		Middlewares: middlewareList,
-	}
-	fMux := http.NewServeMux()
-	fileServer := http.FileServer(middleware)
-	fMux.Handle("/", fileServer)
 
-	log.Printf("Listening...")
+	middlewareList := []middleware.Middleware{
+		&middleware.FileLogging{},
+		&middleware.FileCache{},
+	}
+
+	mw := middleware.CreateChain(middlewareList, dir)
+
+	fMux := http.NewServeMux()
+	fileServer := http.FileServer(mw)
+	fMux.Handle("/", middleware.HttpLogging(fileServer))
+
+	log.Printf("Listening on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", fMux))
 }
